@@ -96,44 +96,12 @@ async function hostingerCreateMailbox(localPart, password) {
 
 export async function getUserMailbox(userId) {
   const { data, error } = await supabaseAdmin.from("mailboxes").select("*")
-    .eq("owner_id", userId).eq("is_active", true).order("created_at", { ascending: true })
-    .limit(1).maybeSingle();
+    .eq("owner_id", userId).eq("is_active", true)
+    .order("created_at", { ascending: true }).limit(1).maybeSingle();
 
   if (error) throw error;
-  if (data) {
-    await createFolders(data.id);
-    return data;
-  }
-
-  const profile = await getProfile(userId);
-  const localPart = normalizeLocalPart(profile?.mail_username);
-  if (!localPart) return null;
-
-  const email = localPart + "@" + config.mailDomain;
-  const { data: existing, error: existingError } = await supabaseAdmin.from("mailboxes")
-    .select("*").eq("email_address", email).maybeSingle();
-  if (existingError) throw existingError;
-  if (existing && existing.owner_id !== userId) {
-    const err = new Error("That Game API Mail address is already in use.");
-    err.status = 409;
-    throw err;
-  }
-  if (existing) {
-    await createFolders(existing.id);
-    return existing;
-  }
-
-  const { data: mailbox, error: insertError } = await supabaseAdmin.from("mailboxes").insert({
-    owner_id: userId,
-    email_address: email,
-    display_name: profile?.display_name ||
-      [profile?.first_name, profile?.last_name].filter(Boolean).join(" ") || "Game API Mail",
-    provider: "hostinger"
-  }).select("*").single();
-
-  if (insertError) throw insertError;
-  await createFolders(mailbox.id);
-  return mailbox;
+  if (data) await createFolders(data.id);
+  return data || null;
 }
 
 export async function provisionUserMailbox(userId) {
