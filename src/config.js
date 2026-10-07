@@ -11,7 +11,7 @@ export const config = {
   nodeEnv: process.env.NODE_ENV || "development",
   supabaseUrl: process.env.SUPABASE_URL,
   supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
-  frontendOrigins: (process.env.FRONTEND_ORIGINS || "").split(",").map(v => v.trim()).filter(Boolean),
+  frontendOrigins: [...new Set([...(process.env.FRONTEND_ORIGINS || "").split(",").map(v => v.trim()).filter(Boolean), "https://mail.game-api.online", "https://gameapionline.github.io"])],
   mailDomain: (process.env.MAIL_DOMAIN || "game-api.online").toLowerCase(),
   smtp: {
     host: process.env.HOSTINGER_SMTP_HOST || "smtp.hostinger.com",
