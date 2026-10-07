@@ -35,7 +35,7 @@ async function getProfile(userId) {
 }
 
 async function getCredentials(mailboxId) {
-  const { data, error } = await supabaseAdmin.schema("private").from("mailbox_credentials")
+  const { data, error } = await supabaseAdmin.from("mailbox_credentials")
     .select("*").eq("mailbox_id", mailboxId).maybeSingle();
   if (error) throw error;
   if (!data) return null;
@@ -52,7 +52,7 @@ async function getCredentials(mailboxId) {
 
 async function saveCredentials(mailboxId, email, password, hostingerMailboxId = null) {
   const encrypted = encryptSecret(password);
-  const { error } = await supabaseAdmin.schema("private").from("mailbox_credentials").upsert(
+  const { error } = await supabaseAdmin.from("mailbox_credentials").upsert(
     {
       mailbox_id: mailboxId,
       email,
