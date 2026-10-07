@@ -4,17 +4,18 @@ import { config } from "./config.js";
 function getKey() {
   if (!config.encryptionKey) throw new Error("APP_ENCRYPTION_KEY is required.");
   const key = Buffer.from(config.encryptionKey, "base64");
-  if (key.length !== 32) throw new Error("APP_ENCRYPTION_KEY must decode to 32 bytes.");
+  if (key.length !== 32) throw new Error("APP_ENCRYPTION_KEY must decode to exactly 32 bytes.");
   return key;
 }
 
 export function encryptSecret(value) {
-  const cipher = crypto.createCipheriv("aes-256-gcm", getKey(), (iv = crypto.randomBytes(12), iv));
+  const iv = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv("aes-256-gcm", getKey(), iv);
   const ciphertext = Buffer.concat([cipher.update(String(value), "utf8"), cipher.final()]);
   return {
     ciphertext: ciphertext.toString("base64"),
-    iv: cipher.getAuthTag ? Buffer.from(cipher.getAuthTag()).toString("base64") : "",
-    authTag: ""
+    iv: iv.toString("base64"),
+    authTag: cipher.getAuthTag().toString("base64")
   };
 }
 
