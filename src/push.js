@@ -1,0 +1,9 @@
+import webpush from "web-push";
+import { config } from "./config.js";
+import { supabaseAdmin } from "./supabase.js";
+let configured=false;
+function configure(){if(configured)return true;if(!config.push.publicKey||!config.push.privateKey||!config.push.subject)return false;webpush.setVapidDetails(config.push.subject,config.push.publicKey,config.push.privateKey);configured=true;return true;}
+export function pushIsConfigured(){return configure();}
+export async function savePushSubscription(userId,subscription,userAgent=""){if(!subscription?.endpoint||!subscription?.keys?.p256dh||!subscription?.keys?.auth){const e=new Error("Invalid push subscription.");e.status=400;throw e;}const {error}=await supabaseAdmin.from("push_subscriptions").upsert({user_id:userId,endpoint:subscription.endpoint,p256dh:subscription.keys.p256dh,auth_key:subscription.keys.auth,user_agent:userAgent||null,last_used_at:new Date().toISOString(),updated_at:new Date().toISOString()},{onConflict:"endpoint"});if(error)throw error;}
+export async function removePushSubscription(userId,endpoint){const {error}=await supabaseAdmin.from("push_subscriptions").delete().eq("user_id",userId).eq("endpoint",endpoint);if(error)throw error;}
+export async function sendPushToUser(userId,payload){if(!configure())return;const {data:rows,error}=await supabaseAdmin.from("push_subscriptions").select("*").eq("user_id",userId);if(error){console.error("Push lookup failed:",error);return;}for(const row of rows||[]){try{await webpush.sendNotification({endpoint:row.endpoint,keys:{p256dh:row.p256dh,auth:row.auth_key}},JSON.stringify(payload),{TTL:120});await supabaseAdmin.from("push_subscriptions").update({last_used_at:new Date().toISOString()}).eq("id",row.id);}catch(e){if(e.statusCode===404||e.statusCode===410)await supabaseAdmin.from("push_subscriptions").delete().eq("id",row.id);else console.error("Push delivery failed:",e.message);}}}
